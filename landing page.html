@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Zenith Monitor — Console de telemetria e otimização para Windows. CPU, RAM, GPU e disco em tempo real.">
+  <title>Zenith Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* =============================================
+       TOKENS
+    ============================================= */
+    :root {
+      --blue:        #005BFD;
+      --blue-light:  #3d80ff;
+      --blue-dim:    rgba(0, 91, 253, .15);
+      --blue-glow:   rgba(0, 91, 253, .35);
+
+      --bg:          #07090f;
+      --bg-2:        #0c0f1a;
+      --panel:       #10131f;
+      --border:      rgba(255,255,255,.07);
+      --border-2:    rgba(255,255,255,.14);
+
+      --ch-cpu:   #ffb454;
+      --ch-ram:   #5fe3c0;
+      --ch-gpu:   #ff6b5b;
+      --ch-disk:  #5b9dff;
+
+      --text:     #edf2f4;
+      --muted:    #8b94a8;
+      --faint:    #3d4558;
+
+      --mono: "IBM Plex Mono", Consolas, monospace;
+      --sans: "Inter", system-ui, sans-serif;
+
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    /* =============================================
+       RESET
+    ============================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    /* =============================================
+       NAVBAR
+    ============================================= */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(7, 9, 15, .85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--text);
+    }
+
+    .nav-z {
+      width: 28px;
+      height: 28px;
+      background: var(--blue);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      box-shadow: 0 0 12px var(--blue-glow);
+      flex-shrink: 0;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: color .15s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 20px;
+      border-radius: var(--radius-sm);
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 0 18px var(--blue-glow);
+      transition: filter .15s, box-shadow .15s;
+    }
+
+    .nav-cta:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 0 28px var(--blue-glow);
+    }
+
+    /* =============================================
+       HERO
+    ============================================= */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Glow radial de fundo */
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(0,91,253,.18) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -60%);
+      pointer-events: none;
+    }
+
+    /* Grade de graticule */
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg,  rgba(0,91,253,.04) 0, rgba(0,91,253,.04) 1px, transparent 1px, transparent 56px),
+        repeating-linear-gradient(90deg, rgba(0,91,253,.04) 0, rgba(0,91,253,.04) 1px, transparent 1px, transparent 56px);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      position: relative;
+      z-index: 1;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      color: var(--blue-light);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: "";
+      height: 1px;
+      width: 40px;
+      background: var(--blue);
+      opacity: .5;
+    }
+
+    .hero-title {
+      position: relative;
+      z-index: 1;
+      font-size: clamp(48px, 8vw, 96px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+
+    .hero-title span {
+      color: var(--blue);
+      text-shadow: 0 0 40px var(--blue-glow);
+    }
+
+    .hero-sub {
+      position: relative;
+      z-index: 1;
+      font-family: var(--mono);
+      font-size: clamp(15px, 2vw, 18px);
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: .5px;
+      margin-bottom: 48px;
+      max-width: 540px;
+    }
+
+    .hero-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 80px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: var(--radius-sm);
+      background: var(--blue);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 0 24px var(--blue-glow);
+      transition: filter .15s, transform .15s;
+    }
+
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-2);
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      transition: border-color .15s, background .15s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--blue);
+      background: var(--blue-dim);
+    }
+
+    /* Preview do app */
+    .hero-preview {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 900px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-2);
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,.6), 0 0 60px var(--blue-glow);
+    }
+
+    .hero-preview img {
+      width: 100%;
+      display: block;
+    }
+
+    /* Placeholder enquanto não tem screenshot */
+    .hero-preview-placeholder {
+      background: var(--panel);
+      height: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    .preview-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 48px;
+    }
+
+    .preview-bars span {
+      width: 10px;
+      border-radius: 3px;
+      animation: bar-idle 2.4s ease-in-out infinite;
+    }
+
+    .preview-bars span:nth-child(1) { background: var(--ch-cpu);  height: 60%; animation-delay: 0s; }
+    .preview-bars span:nth-child(2) { background: var(--ch-ram);  height: 90%; animation-delay: .3s; }
+    .preview-bars span:nth-child(3) { background: var(--ch-gpu);  height: 40%; animation-delay: .6s; }
+    .preview-bars span:nth-child(4) { background: var(--ch-disk); height: 70%; animation-delay: .9s; }
+
+    @keyframes bar-idle {
+      0%, 100% { opacity: .6; transform: scaleY(1); }
+      50% { opacity: 1; transform: scaleY(.7); }
+    }
+
+    /* =============================================
+       SEÇÕES GERAIS
+    ============================================= */
+    section { padding: 100px 24px; }
+    .container { max-width: 1080px; margin: 0 auto; }
+
+    .section-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      color: var(--blue-light);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      line-height: 1.15;
+    }
+
+    .section-lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 60px;
+    }
+
+    /* =============================================
+       MÉTRICAS (4 canais)
+    ============================================= */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--ch);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: transform .15s, border-color .15s;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .metric-card:nth-child(1) { --ch: var(--ch-cpu);  }
+    .metric-card:nth-child(2) { --ch: var(--ch-ram);  }
+    .metric-card:nth-child(3) { --ch: var(--ch-gpu);  }
+    .metric-card:nth-child(4) { --ch: var(--ch-disk); }
+
+    .metric-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .metric-channel {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ch);
+      border: 1px solid var(--ch);
+      border-radius: 4px;
+      padding: 2px 7px;
+      display: inline-block;
+      margin-bottom: 14px;
+      opacity: .8;
+    }
+
+    .metric-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* =============================================
+       FEATURES (Otimizador)
+    ============================================= */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color .15s, transform .15s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(0,91,253,.4);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+    }
+
+    .feature-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* =============================================
+       DECISÕES TÉCNICAS
+    ============================================= */
+    .tech-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tech-item {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0;
+      overflow: hidden;
+      transition: border-color .15s;
+    }
+
+    .tech-item:hover { border-color: rgba(0,91,253,.35); }
+
+    .tech-item summary {
+      padding: 20px 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      list-style: none;
+      user-select: none;
+    }
+
+    .tech-item summary::-webkit-details-marker { display: none; }
+
+    .tech-chevron {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 12px;
+      transition: transform .2s;
+    }
+
+    .tech-item[open] .tech-chevron { transform: rotate(90deg); }
+
+    .tech-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--blue-dim);
+      color: var(--blue-light);
+      border: 1px solid rgba(0,91,253,.3);
+      white-space: nowrap;
+    }
+
+    .tech-body {
+      padding: 0 24px 20px 24px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      margin: 0 24px;
+    }
+
+    /* =============================================
+       STACK
+    ============================================= */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .stack-item {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stack-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue);
+      flex-shrink: 0;
+      box-shadow: 0 0 6px var(--blue-glow);
+    }
+
+    .stack-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .stack-role {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* =============================================
+       COMO RODAR
+    ============================================= */
+    .install-box {
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .install-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .install-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .install-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .install-dots span:nth-child(1) { background: #ff5f57; }
+    .install-dots span:nth-child(2) { background: #febc2e; }
+    .install-dots span:nth-child(3) { background: #28c840; }
+
+    .install-code {
+      padding: 24px 20px;
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 2;
+      color: var(--text);
+    }
+
+    .install-code .prompt { color: var(--blue); user-select: none; }
+    .install-code .comment { color: var(--faint); }
+    .install-code .cmd { color: var(--text); }
+
+    .prereqs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+
+    .prereq-badge {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-2);
+      color: var(--muted);
+    }
+
+    /* =============================================
+       DIVIDERS
+    ============================================= */
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* =============================================
+       FOOTER
+    ============================================= */
+    footer {
+      padding: 48px 24px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-brand {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--blue);
+      margin-bottom: 8px;
+    }
+
+    .footer-sub {
+      font-size: 13px;
+      color: var(--faint);
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--muted);
+      transition: color .15s;
+    }
+
+    .footer-links a:hover { color: var(--blue-light); }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width: 768px) {
+      .nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      section { padding: 72px 20px; }
+
+      .hero-title { letter-spacing: -1px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .preview-bars span { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="nav">
+    <a href="#" class="nav-brand">
+      <div class="nav-z">Z</div>
+      ZENITH MONITOR
+    </a>
+    <ul class="nav-links">
+      <li><a href="#metricas">Métricas</a></li>
+      <li><a href="#otimizador">Otimizador</a></li>
+      <li><a href="#tecnico">Técnico</a></li>
+      <li><a href="#instalar">Instalar</a></li>
+    </ul>
+    <a href="https://github.com/Zenith-Monitor/app" target="_blank" rel="noopener" class="nav-cta">
+      Ver no GitHub ↗
+    </a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">Windows System Console</div>
+
+    <h1 class="hero-title">
+      Know your<br><span>machine.</span>
+    </h1>
+
+    <p class="hero-sub">
+      CPU · RAM · GPU · Disco — em tempo real.<br>
+      Sem números falsos. Sem limpeza mágica.
+    </p>
+
+    <div class="hero-actions">
+      <a href="https://github.com/Zenith-Monitor/app" target="_blank" rel="noopener" class="btn-primary">
+        ↓ Download no GitHub
+      </a>
+      <a href="#metricas" class="btn-secondary">
+        Ver funcionalidades
+      </a>
+    </div>
+
+    <!-- Preview do app — substitua por screenshot real -->
+    <div class="hero-preview">
+      <!-- Quando tiver o screenshot, descomenta a linha abaixo e remove o placeholder -->
+      <!-- <img src="assets/screenshot-dashboard.png" alt="Zenith Monitor dashboard"> -->
+      <div class="hero-preview-placeholder">
+        <div class="preview-bars">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <span>screenshot em breve</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- MÉTRICAS -->
+  <section id="metricas">
+    <div class="container">
+      <p class="section-eyebrow">Monitoramento</p>
+      <h2 class="section-title">4 canais. Dados reais.</h2>
+      <p class="section-lead">
+        Cada métrica vem da mesma fonte que o Gerenciador de Tarefas usa —
+        não de uma estimativa ou de um número inventado pra parecer alto.
+      </p>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Processador</div>
+          <div class="metric-channel">CH.01</div>
+          <div class="metric-desc">
+            Uso real via WMI <code>% Processor Utility</code> — a métrica que o Windows usa internamente,
+            com fallback automático pra qualquer configuração de sistema.
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Memória RAM</div>
+          <div class="metric-channel">CH.02</div>
+          <div class="metric-desc">
+            Total, usado e livre em GB, atualizados a cada segundo. Nenhuma estimativa — memória
+            física lida diretamente do SO.
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Placa de Vídeo</div>
+          <div class="metric-channel">CH.03</div>
+          <div class="metric-desc">
+            Leitura via <code>nvidia-smi</code> em placas NVIDIA, com fallback pra
+            <code>systeminformation</code> em outros modelos.
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Armazenamento</div>
+          <div class="metric-channel">CH.04</div>
+          <div class="metric-desc">
+            Uso por unidade (C:, D:, etc.) via WMI <code>Win32_LogicalDisk</code>.
+            Suporte a múltiplos discos com seleção na interface.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- OTIMIZADOR -->
+  <section id="otimizador">
+    <div class="container">
+      <p class="section-eyebrow">Otimizador</p>
+      <h2 class="section-title">Ações reais no sistema.</h2>
+      <p class="section-lead">
+        Nada de mover arquivos de lugar e chamar de "limpeza". Cada operação
+        chama a API certa do Windows.
+      </p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <div class="feature-title">Limpeza de Memória RAM</div>
+          <div class="feature-desc">
+            4 técnicas reais via P/Invoke direto pra <code>ntdll.dll</code>, <code>psapi.dll</code>
+            e <code>kernel32.dll</code>: Working Set Evacuation, System File Cache flush,
+            Standby List Purge e Modified Page List flush.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧹</div>
+          <div class="feature-title">Arquivos Temporários</div>
+          <div class="feature-desc">
+            Remove recursivamente arquivos e pastas em <code>%TEMP%</code> — os que se acumulam
+            com instaladores, atualizações e uso normal do Windows.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <div class="feature-title">Flush de DNS</div>
+          <div class="feature-desc">
+            Executa <code>ipconfig /flushdns</code> pra limpar o cache de resolução de nomes —
+            útil após trocar de rede ou configurar hosts locais.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎮</div>
+          <div class="feature-title">Modo Gaming</div>
+          <div class="feature-desc">
+            Troca o plano de energia pro esquema de desempenho máximo
+            (<code>SCHEME_MIN</code>) via <code>powercfg</code>, sem economia de energia.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- DECISÕES TÉCNICAS -->
+  <section id="tecnico">
+    <div class="container">
+      <p class="section-eyebrow">Por dentro</p>
+      <h2 class="section-title">Decisões que não são óbvias.</h2>
+      <p class="section-lead">
+        Problemas reais encontrados durante o desenvolvimento — e como foram resolvidos.
+      </p>
+
+      <div class="tech-list">
+        <details class="tech-item">
+          <summary>
+            <span>Contadores de performance do Windows são localizados</span>
+            <span class="tech-tag">CPU</span>
+            <span class="tech-chevron">›</span>
+          </summary>
+          <div class="tech-body">
+            A primeira versão usava <code>Get-Counter '\Processor Information(_Total)\% Processor Utility'</code>
+            — que funciona apenas em Windows com idioma inglês americano. Em PT-BR, o comando falha
+            silenciosamente sem retornar erro. A correção foi migrar pra WMI
+            (<code>Win32_PerfFormattedData_Counters_ProcessorInformation</code>), cujos nomes de
+            classe e propriedade são sempre em inglês, independente do idioma do sistema operacional.
+          </div>
+        </details>
+
+        <details class="tech-item">
+          <summary>
+            <span>O Gerenciador de Tarefas não usa % Processor Time</span>
+            <span class="tech-tag">CPU</span>
+            <span class="tech-chevron">›</span>
+          </summary>
+          <div class="tech-body">
+            Desde o Windows 8, o Gerenciador de Tarefas mostra <em>% Processor Utility</em> — que
+            pondera o tempo de uso pela frequência atual do processador em relação à frequência base.
+            O método clássico (<code>idle/total ticks</code>) pode mostrar valores até 40 pontos
+            percentuais acima em CPUs com escalonamento de frequência agressivo. O Zenith tenta ler
+            a métrica real e cai pro método clássico automaticamente se o provedor WMI não responder.
+          </div>
+        </details>
+
+        <details class="tech-item">
+          <summary>
+            <span>nvidia-smi vs Gerenciador de Tarefas: métricas diferentes</span>
+            <span class="tech-tag">GPU</span>
+            <span class="tech-chevron">›</span>
+          </summary>
+          <div class="tech-body">
+            O <code>nvidia-smi</code> reporta atividade do driver como um todo (todas as engines:
+            3D, vídeo, compute, cópia). O Gerenciador de Tarefas mostra a engine 3D especificamente.
+            Em workloads de vídeo ou compute, os dois podem divergir bastante. O Zenith usa
+            <code>nvidia-smi</code> como fonte primária por ser mais direto e confiável — e documenta
+            essa diferença de metodologia para o usuário não confundir os valores.
+          </div>
+        </details>
+
+        <details class="tech-item">
+          <summary>
+            <span>Um processo PowerShell, não um por tick</span>
+            <span class="tech-tag">Performance</span>
+            <span class="tech-chevron">›</span>
+          </summary>
+          <div class="tech-body">
+            Chamar <code>powershell.exe</code> a cada segundo (pra ler um contador WMI) custaria
+            300-800ms de startup por chamada — tornando o loop de 1s impossível. A solução foi manter
+            um único processo PowerShell em background, em loop infinito, enviando valores por stdout.
+            O processo Node lê o último valor recebido a cada tick, sem nunca subir um novo processo.
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- STACK -->
+  <section>
+    <div class="container">
+      <p class="section-eyebrow">Stack</p>
+      <h2 class="section-title">Construído com.</h2>
+
+      <div class="stack-grid">
+        <div class="stack-item">
+          <div class="stack-dot"></div>
+          <div>
+            <div class="stack-name">Electron</div>
+            <div class="stack-role">Shell do app</div>
+          </div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot"></div>
+          <div>
+            <div class="stack-name">JavaScript</div>
+            <div class="stack-role">Lógica principal</div>
+          </div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot"></div>
+          <div>
+            <div class="stack-name">systeminformation</div>
+            <div class="stack-role">Métricas do sistema</div>
+          </div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot"></div>
+          <div>
+            <div class="stack-name">WMI / CIM</div>
+            <div class="stack-role">APIs do Windows</div>
+          </div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot"></div>
+          <div>
+            <div class="stack-name">PowerShell</div>
+            <div class="stack-role">Otimizações do sistema</div>
+          </div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot"></div>
+          <div>
+            <div class="stack-name">Chart.js</div>
+            <div class="stack-role">Gráficos em tempo real</div>
+          </div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot"></div>
+          <div>
+            <div class="stack-name">HTML + CSS puro</div>
+            <div class="stack-role">Interface (sem framework)</div>
+          </div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot"></div>
+          <div>
+            <div class="stack-name">nvidia-smi</div>
+            <div class="stack-role">Métricas de GPU</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- INSTALAR -->
+  <section id="instalar">
+    <div class="container">
+      <p class="section-eyebrow">Instalação</p>
+      <h2 class="section-title">Rodar em 3 comandos.</h2>
+
+      <div class="install-box">
+        <div class="install-header">
+          <div class="install-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span>Terminal (PowerShell ou CMD)</span>
+        </div>
+        <div class="install-code">
+          <div><span class="prompt">$ </span><span class="cmd">git clone https://github.com/Zenith-Monitor/app</span></div>
+          <div><span class="prompt">$ </span><span class="cmd">cd zenith-monitor</span></div>
+          <div><span class="prompt">$ </span><span class="cmd">npm install</span></div>
+          <div><span class="prompt">$ </span><span class="cmd">npm start</span></div>
+          <div class="comment"># Para limpeza de RAM completa, execute o terminal como Administrador</div>
+        </div>
+      </div>
+
+      <div class="prereqs">
+        <span class="prereq-badge">Node.js 18+</span>
+        <span class="prereq-badge">Windows 10 / 11</span>
+        <span class="prereq-badge">npm</span>
+        <span class="prereq-badge">nvidia-smi (opcional, para GPU NVIDIA)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">ZENITH MONITOR</div>
+    <div class="footer-sub">Know your machine.</div>
+    <div class="footer-links">
+      <a href="https://github.com/Zenith-Monitor/app" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/Nex665" target="_blank" rel="noopener">@Carlos Azevedo</a>
+      <a href="https://github.com/Zenith-Monitor/app/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+    </div>
+  </footer>
+
+</body>
+</html>
