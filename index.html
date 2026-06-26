@@ -514,10 +514,17 @@
       <a href="https://github.com/Zenith-Monitor/app/releases/download/v1.0.0/Zenith.Monitor.Setup.1.0.0.exe" class="btn-primary">
         ↓ Download Instalador
       </a>
-      <a href="https://github.com/Zenith-Monitor/app/releases/tag/v1.0.0" target="_blank" rel="noopener" class="btn-secondary">Ver todos os downloads ↗</a>
+      <a href="#instalar" class="btn-secondary">Como instalar</a>
     </div>
     <div class="hero-preview">
-    <img src="assets/screenshot-dashboard.png" alt="Zenith Monitor dashboard">
+      <!-- Substitua pela linha abaixo quando tiver o screenshot: -->
+      <!-- <img src="assets/screenshot-dashboard.png" alt="Zenith Monitor dashboard"> -->
+      <div class="hero-preview-placeholder">
+        <div class="preview-bars">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <span>screenshot em breve</span>
+      </div>
     </div>
   </section>
 
@@ -637,24 +644,22 @@
   <section id="instalar">
     <div class="container">
       <p class="section-eyebrow">Instalação</p>
-      <h2 class="section-title">Rodar em 3 comandos.</h2>
+      <h2 class="section-title">Rodar em 3 passos.</h2>
       <div class="install-box">
         <div class="install-header">
           <div class="install-dots"><span></span><span></span><span></span></div>
-          <span>Terminal (PowerShell ou CMD)</span>
+          <span>Windows 10 / 11 (x64)</span>
         </div>
         <div class="install-code">
-          <div><span class="prompt">$ </span>git clone https://github.com/Zenith-Monitor/app</div>
-          <div><span class="prompt">$ </span>cd app</div>
-          <div><span class="prompt">$ </span>npm install</div>
-          <div><span class="prompt">$ </span>npm start</div>
-          <div class="comment"># Para limpeza de RAM completa, execute o terminal como Administrador</div>
+          <div><span class="prompt">1. </span>Baixe o instalador acima</div>
+          <div><span class="prompt">2. </span>Se o SmartScreen aparecer → clique <b style="color:#edf2f4">Mais informações → Executar assim mesmo</b></div>
+          <div><span class="prompt">3. </span>Aceite o prompt de Administrador → instalação concluída</div>
+          <div class="comment"># O SmartScreen aparece porque o app ainda não tem certificado comercial — é seguro prosseguir</div>
         </div>
       </div>
       <div class="prereqs">
-        <span class="prereq-badge">Node.js 18+</span>
         <span class="prereq-badge">Windows 10 / 11</span>
-        <span class="prereq-badge">npm</span>
+        <span class="prereq-badge">x64</span>
         <span class="prereq-badge">nvidia-smi (opcional, para GPU NVIDIA)</span>
       </div>
     </div>
